@@ -7,4 +7,5 @@ RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o app .
 FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/app .
+LABEL org.opencontainers.image.source=https://github.com/qjoly/spiffe-demo-cert-manager
 CMD ["./app"]
