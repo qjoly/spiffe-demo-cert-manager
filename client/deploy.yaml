@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      serviceAccountName: client-spiffe
+      containers:
+        - name: client
+          image: ghcr.io/qjoly/spiffe-demo-client:dev
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: "/var/run/secrets/spiffe.io"
+              name: spiffe
+      volumes:
+        - name: spiffe
+          csi:
+            driver: spiffe.csi.cert-manager.io
+            readOnly: true
+            volumeAttributes:
+              spiffe.csi.cert-manager.io/fs-group: "1000"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: client-spiffe
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: create-certificaterequests
+  namespace: default
+rules:
+- apiGroups: ["cert-manager.io"]
+  resources: ["certificaterequests"]
+  verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: client-spiffe
+  namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: create-certificaterequests
+subjects:
+- kind: ServiceAccount
+  name: client-spiffe
+  namespace: default
